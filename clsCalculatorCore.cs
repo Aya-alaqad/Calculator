@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace Simple_Calculator
 {
@@ -113,6 +114,7 @@ namespace Simple_Calculator
         private static void handleOperator(Stack<float> operands, Stack<char> operators, char op)
         {
             float res;
+            
             while (operators.Count != 0 && getPriority(op) <= getPriority(operators.Peek()))
             {
                 if (operators.Peek() == '(')
@@ -146,14 +148,14 @@ namespace Simple_Calculator
             {
                 char c = s[i];
                 if (c == '(')
-                {
-                    operators.Push(c);
+                {                 
                     //cases like 5(5) treat it as *;
                     if (i != 0 && (int)s[i - 1] - '0' >= 0 && (int)s[i - 1]-'0' <= 9)
                     {                       
                         handleOperator(operands, operators, '*');
                     }
-                    if(error!=enCalculatorError.None)
+                    operators.Push(c);
+                    if (error!=enCalculatorError.None)
                     {
                         return error;
                     }
@@ -241,6 +243,8 @@ namespace Simple_Calculator
 
              if (operands.Count == 0)
                 return enCalculatorError.syntaxError ;
+            if (operands.Count == 2 && operators.Count == 0)
+                return enCalculatorError.syntaxError;
 
              res = operands.Pop();
              return enCalculatorError.None;
