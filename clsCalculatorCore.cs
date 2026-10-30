@@ -8,6 +8,10 @@ namespace Simple_Calculator
 {
     internal class clsCalculatorCore
     {
+        public enum enCalculatorError { None=1,syntaxError=2,zeroDivision=3,emptyExpression=4}
+
+        public static enCalculatorError error;
+
         private static byte getPriority(char op)
         {
             if (op == '-' || op == '+')
@@ -34,7 +38,10 @@ namespace Simple_Calculator
                     break;
                 case '/':
                     if (op2 == 0)
+                    {
+                        error=enCalculatorError.zeroDivision;
                         return float.NaN;
+                    }
                     op1 /= op2;
                     break;
                 case 'n':
@@ -46,10 +53,11 @@ namespace Simple_Calculator
         }
         private static float calculateTop(Stack<float> operands, Stack<char> operators)
         {
-            if (operands.Count == 0)
+            if (operands.Count == 0 || operators.Count==0)
+            {
+                error = enCalculatorError.syntaxError;
                 return float.NaN;
-            else if (operators.Count == 0)
-                return float.NaN;
+            }
 
             char op = operators.Pop();
             if(op=='n')
@@ -62,8 +70,12 @@ namespace Simple_Calculator
             {
                 float op2 = operands.Pop();
                 if (operands.Count == 0)
+                {
+                    error = enCalculatorError.syntaxError;
                     return float.NaN;
+                }
 
+               
                 return doSingleCalculation(op,operands.Pop(),op2);
             }
         }
@@ -114,16 +126,15 @@ namespace Simple_Calculator
             }
             operators.Push(op);
         }
-        public static float calculateReslut(string s)
-        {
-            bool isThereError = false;
+        public static enCalculatorError calculateReslut(string s,ref float res)
+        {     
             if (s.Length == 0)
-                return float.NaN;
+                return enCalculatorError.emptyExpression;
             if (s[0]==')' || s[0]=='%')
             {
-                return float.NaN;
+                return enCalculatorError.syntaxError;
             }
-            
+            error = enCalculatorError.None;
            
             Stack<float> operands = new Stack<float>();
             Stack<char> operators = new Stack<char>();
@@ -142,28 +153,25 @@ namespace Simple_Calculator
                     {                       
                         handleOperator(operands, operators, '*');
                     }
-                    if(operands.Count!=0&&float.IsNaN(operands.Peek()))
+                    if(error!=enCalculatorError.None)
                     {
-                        isThereError = true;
-                        break;
+                        return error;
                     }
                 }
 
                 else if (c == ')')
                 {
                     handleRightParanthesis(operands, operators);
-                    if(operands.Count!=0&&float.IsNaN(operands.Peek()))
+                    if(error!=enCalculatorError.None)
                     {
-                        isThereError = true;
-                        break;
+                        return error;
                     }
                     //cases like (5)(5) or (5)5 treat it as *;
                     if (i < s.Length - 1 && ( ((int)s[i + 1] - '0' >= 0 && (int)s[i + 1] - '0' <= 9) || s[i+1]=='('))
                         handleOperator(operands, operators, '*');
-                    if (operands.Count != 0 && float.IsNaN(operands.Peek()))
+                    if (error!=enCalculatorError.None)
                     {
-                        isThereError = true;
-                        break;
+                        return error;
                     }
                 }
                 
@@ -175,25 +183,24 @@ namespace Simple_Calculator
                         {
                             operators.Push('n');
                         }
+                        //positive number or expression 
                         else if (s[i] == '+')
                             continue;
-                        //positive number or expression 
 
+                        //else syntax error
                         else
-                        {
-                            //syntax error
-                            isThereError = true;
-                            break;
+                        {                        
+                            error = enCalculatorError.syntaxError;
+                            return error;
                         }
                         continue;
                     }
                     else
                     {
                         handleOperator(operands, operators, c);
-                        if (operands.Count != 0 && float.IsNaN(operands.Peek()))
+                        if (error!=enCalculatorError.None)
                         {
-                            isThereError = true;
-                            break;
+                            return error;
                         }
                     }
                 }
@@ -205,13 +212,13 @@ namespace Simple_Calculator
                 else if(c=='%')
                 {
                     if (i - 1 >=0 && ((int)s[i-1] - '0' > 9 || (int)s[i-1] - '0' < 0)&&s[i-1]!=')')
-                        return float.NaN;
+                    {
+                        error = enCalculatorError.syntaxError;
+                        return error;
+                    }
                     operands.Push(operands.Pop() / 100);
                 }
             }
-
-            if (isThereError)
-                return float.NaN;
 
             while (operators.Count != 0)
             {
@@ -223,21 +230,20 @@ namespace Simple_Calculator
                
                 op2 = calculateTop(operands,operators);
                 
-                if (float.IsNaN(op2))
+                if (error!=enCalculatorError.None)
                 {
-                    isThereError=true;
-                    break;
+                    return error;
                 }
                 else
                     operands.Push(op2);
 
             }
 
-            if (isThereError)
-                return float.NaN;
-            else if (operands.Count == 0)
-                return float.NaN;
-            else return operands.Pop();
+             if (operands.Count == 0)
+                return enCalculatorError.syntaxError ;
+
+             res = operands.Pop();
+             return enCalculatorError.None;
 
         }
     }

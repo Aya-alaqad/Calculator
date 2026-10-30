@@ -11,7 +11,8 @@ using System.Windows.Forms;
 namespace Simple_Calculator
 {
     public partial class Form1 : Form
-    { 
+    {
+        private bool isErrorDisplayed = false;
         private void restoreFocusToTxtb()
         {
             txtb_screen.Focus();
@@ -23,45 +24,72 @@ namespace Simple_Calculator
             InitializeComponent();
         }
 
+        private void clearError()
+        {
+            if (isErrorDisplayed)
+            {
+                txtb_screen.Clear();
+            }
+            isErrorDisplayed = false;
+        }
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            if ((keyData <= Keys.NumPad9 && keyData >= Keys.NumPad0) || (keyData <= Keys.D9 && keyData >= Keys.D0) || 
-                keyData == Keys.Add || keyData == Keys.Subtract || keyData == Keys.Multiply || keyData == Keys.Divide 
-                || keyData == Keys.OemMinus ||keyData==Keys.Decimal|| keyData == (Keys.Shift | Keys.D8) || keyData == (Keys.Shift | Keys.D9)  || 
-                keyData == (Keys.Shift | Keys.D0) || keyData == (Keys.Shift | Keys.D5) || keyData == (Keys.Shift|Keys.Oemplus))
-                return base.ProcessCmdKey(ref msg, keyData);
 
-            else if(keyData== Keys.Enter)
+            if ((keyData <= Keys.NumPad9 && keyData >= Keys.NumPad0) || (keyData <= Keys.D9 && keyData >= Keys.D0) ||
+                keyData == Keys.Add || keyData == Keys.Subtract || keyData == Keys.Multiply || keyData == Keys.Divide
+                || keyData == Keys.OemMinus || keyData == Keys.Decimal || keyData == (Keys.Shift | Keys.D8) || keyData == (Keys.Shift | Keys.D9) ||
+                keyData == (Keys.Shift | Keys.D0) || keyData == (Keys.Shift | Keys.D5) || keyData == (Keys.Shift | Keys.Oemplus))
             {
-                showResult();             
+                clearError();
+                return base.ProcessCmdKey(ref msg, keyData);
             }
-            else if(keyData==Keys.Back)
+
+            else if (keyData == Keys.Enter)
             {
-                delete();    
+                showResult();
+            }
+            else if (keyData == Keys.Back)
+            {
+                delete();
             }
 
             return true;
         }
 
        private void delete()
-        {
-            if (txtb_screen.Text.Length == 0)
-                return;
-            if(txtb_screen.Text=="NaN")
+       {
+            clearError();
+            if(txtb_screen.Text.Length!=0)
             {
-                txtb_screen.Text = "";
-                return;
+                txtb_screen.Text = txtb_screen.Text.Remove(txtb_screen.Text.Length - 1);
             }
-            StringBuilder sb;
-            sb = new StringBuilder(txtb_screen.Text);
-            sb.Length--;
-            txtb_screen.Text = sb.ToString();
             restoreFocusToTxtb();
-        }
+       }
 
+        private void displayResult(clsCalculatorCore.enCalculatorError error, float res)
+        {
+            switch(error)
+            {
+                case clsCalculatorCore.enCalculatorError.None:
+                    txtb_screen.Text = res.ToString();
+                    break;
+                case clsCalculatorCore.enCalculatorError.syntaxError:
+                    txtb_screen.Text = "Syntax Error";
+                    isErrorDisplayed = true;
+                    break;
+                case clsCalculatorCore.enCalculatorError.zeroDivision:
+                    txtb_screen.Text = "Zero Division Error";
+                    isErrorDisplayed = true;
+                    break;
+                case clsCalculatorCore.enCalculatorError.emptyExpression:
+                    break;
+            }
+        }
         private void showResult()
         {
-            txtb_screen.Text = clsCalculatorCore.calculateReslut(txtb_screen.Text).ToString();
+            float res=0;
+            clsCalculatorCore.enCalculatorError error= clsCalculatorCore.calculateReslut(txtb_screen.Text,ref res);
+            displayResult(error, res);
             restoreFocusToTxtb();
         }
         private void btn_equal_Click(object sender, EventArgs e)
@@ -71,6 +99,7 @@ namespace Simple_Calculator
         
         private void button_Click(object sender, EventArgs e)
         {
+            clearError();
             Button btn = (Button)sender;
             txtb_screen.Text += btn.Tag.ToString();
             restoreFocusToTxtb();
@@ -79,6 +108,7 @@ namespace Simple_Calculator
         private void btn_c_Click(object sender, EventArgs e)
         {
             txtb_screen .Text= "";
+            isErrorDisplayed = false;
             restoreFocusToTxtb();
         }
 
